@@ -1,4 +1,11 @@
 #!/bin/bash
+
+#
+# This plugin retrieves the labels associated with a pull request on github and publishes them as either an environment variable, or as a meta-data key.
+#
+# The plugin is forked from https://github.com/sv-oss/github-pr-labels-buildkite-plugin, in order to provide functionality to extract the PR number using a user-provided source and pattern. This is useful on default branches that are not explicitly tied to a pull request.
+#
+
 set -euo pipefail
 
 # Reads either a value or a list from the given env prefix
@@ -23,8 +30,6 @@ if [[ "${BUILDKITE_PIPELINE_PROVIDER:-}" != "github" ]] ; then
   echo "⛔️  this plugin can only be used on piplines associated with github repositories" >&2
   exit 1
 fi
-
-env | grep BUILDKITE_PLUGIN_GITHUB_PR_LABELS
 
 # If the build is not tied to a pull request, try and extract the PR number if configuration to do so has been provided
 if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" || "${BUILDKITE_BRANCH}" == DEV* ]] ; then
