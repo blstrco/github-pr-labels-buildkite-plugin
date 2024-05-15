@@ -25,7 +25,7 @@ if [[ "${BUILDKITE_PIPELINE_PROVIDER:-}" != "github" ]] ; then
 fi
 
 # If the build is not tied to a pull request, try and extract the PR number if configuration to do so has been provided
-if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" ]] ; then
+if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" || "${BUILDKITE_BRANCH}" == "DEV*" ]] ; then
 
   # If there is a pattern(s) and source configured, try to extract the PR number
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM:-}" ]]; then
