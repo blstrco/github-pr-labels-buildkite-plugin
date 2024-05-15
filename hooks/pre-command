@@ -24,6 +24,8 @@ if [[ "${BUILDKITE_PIPELINE_PROVIDER:-}" != "github" ]] ; then
   exit 1
 fi
 
+env | grep BUILDKITE_PLUGIN_GITHUB_PR_LABELS
+
 # If the build is not tied to a pull request, try and extract the PR number if configuration to do so has been provided
 if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" || "${BUILDKITE_BRANCH}" == DEV* ]] ; then
 
@@ -33,6 +35,9 @@ if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" || "${BUILDKITE_BRANCH}" == 
 
     patternValue="$(prefix_read_list "PATTERN")"
     source=\""${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_SOURCE}"\" # Wrap in quotes here to prevent issues when using eval
+
+    echo "Source: ${source}"
+    echo "Pattern: ${patternValue}"
 
     # If patternValue is an array of patterns, chain grep commands together for each
     if [[ $(declare -p "${patternValue}") =~ "declare -a" ]]; then
