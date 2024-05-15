@@ -1,16 +1,62 @@
 #!/bin/bash
 set -euo pipefail
 
+# Reads either a value or a list from the given env prefix
+function prefix_read_list() {
+  local prefix="BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_$1"
+  local parameter="${prefix}_0"
+
+  if [[ -n "${!parameter:-}" ]]; then
+    local i=0
+    local parameter="${prefix}_${i}"
+    while [[ -n "${!parameter:-}" ]]; do
+      echo "${!parameter}"
+      i=$((i+1))
+      parameter="${prefix}_${i}"
+    done
+  elif [[ -n "${!prefix:-}" ]]; then
+    echo "${!prefix}"
+  fi
+}
+
 if [[ "${BUILDKITE_PIPELINE_PROVIDER:-}" != "github" ]] ; then
   echo "⛔️  this plugin can only be used on piplines associated with github repositories" >&2
   exit 1
 fi
 
+# If the build is not tied to a pull request, try and extract the PR number if configuration to do so has been provided
 if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" ]] ; then
+
+  # If there is a pattern(s) and source configured, try to extract the PR number
+  if [[ -n "${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM:-}" ]]; then
+    echo "⚠️  this doesn't appear to be a PR-build, but a PR number pattern is configured" >&2
+
+    patternValue="$(prefix_read_list "PATTERN")"
+    source=\""${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_SOURCE}"\" # Wrap in quotes here to prevent issues when using eval
+
+    # If patternValue is an array of patterns, chain grep commands together for each
+    if [[ $(declare -p "${patternValue}") =~ "declare -a" ]]; then
+      patternString=""
+      for p in "${patternValue[@]}"; do
+        patternString+=" | grep -oE '${p}'"
+      done
+    else
+      # Otherwise just use the single pattern
+      patternString=" | grep -oE '${patternValue}'"
+    fi
+
+    pullReqNo=$(eval echo "${source}" "${patternString}")
+  fi
+
+  # Otherwise, we can't do anything so exit
   echo "⚠️  this doesn't appear to be a PR-build, skipping plugin execution" >&2
   exit 0
+
+else
+  # For builds tied to a pull request, use the provided pull request number variable
+  pullReqNo="${BUILDKITE_PULL_REQUEST}"
 fi
-pullReqNo="${BUILDKITE_PULL_REQUEST}"
+
 
 repoFq=""
 if [[ "${BUILDKITE_REPO:-}" =~ github.com[:/](.*).git[/]? ]]; then
