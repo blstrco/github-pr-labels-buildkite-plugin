@@ -4,6 +4,8 @@ Retrieve the labels associated with a GitHub Pull Request and publish them as en
 
 Multiple labels will appear as comma-separated values.
 
+The only difference in this fork from the upstream is [the alternate source functionality](#getting-labels-from-another-source).
+
 ## Pre-requisites for private repositories
 
 When using with a private repository, a valid GitHub token (PAT) must be provided.
@@ -21,7 +23,7 @@ The variable is accessible to all subsequent commands and plugins within the sam
 steps:
   - command: echo $$PULL_REQUEST_LABELS
     plugins:
-      - sv-oss/github-pr-labels#v0.0.2:
+      - blstrco/github-pr-labels#main:
           publish-env-var: PULL_REQUEST_LABELS
 ```
 
@@ -36,7 +38,7 @@ The variable is accessible to all subsequent commands and plugins within the sam
 steps:
   - command: echo $$PULL_REQUEST_LABELS
     plugins:
-      - sv-oss/github-pr-labels#v0.0.2:
+      - blstrco/github-pr-labels#main:
           token-from:
             env: GITHUB_TOKEN
           publish-env-var: PULL_REQUEST_LABELS
@@ -53,13 +55,37 @@ The meta-data key is accessible on all subsequent steps of the pipeline.
 steps:
   - command: buildkite-agent meta-data get pull-request-labels
     plugins:
-      - sv-oss/github-pr-labels#v0.0.2:
+      - blstrco/github-pr-labels#main:
           token-from:
             file: /etc/github/token
           publish-metadata-key: pull-request-labels
   - wait: ~
   - command: buildkite-agent meta-data get pull-request-labels
 ```
+
+### Getting labels from another source
+
+In situations where the branch is not tied to a pull request, this fork provides a mechanism for retrieving the pull request number from another source using one or many regex patterns (passed to `egrep` (chained if array)).
+
+This could be used with `BUILDKITE_MESSAGE` if using default squash commit messages, for e.g.:
+
+```yml
+steps:
+  - command: buildkite-agent meta-data get pull-request-labels
+    plugins:
+      - blstrco/github-pr-labels#main:
+          token-from:
+            file: /etc/github/token
+          publish-metadata-key: pull-request-labels
+          pull-request-id-from:
+            pattern:
+              - '\(#[0-9]+)$'
+              - '[0-9]+'
+            source: "$$BUILDKITE_MESSAGE"
+  - wait: ~
+  - command: buildkite-agent meta-data get pull-request-labels
+```
+
 ## Configuration
 
 ### `token-from` (optional, {file | env})

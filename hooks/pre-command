@@ -1,16 +1,69 @@
 #!/bin/bash
+
+#
+# This plugin retrieves the labels associated with a pull request on github and publishes them as either an environment variable, or as a meta-data key.
+#
+# The plugin is forked from https://github.com/sv-oss/github-pr-labels-buildkite-plugin, in order to provide functionality to extract the PR number using a user-provided source and pattern. This is useful on default branches that are not explicitly tied to a pull request.
+#
+
 set -euo pipefail
+
+# Reads either a value or a list from the given env prefix
+function prefix_read_list() {
+  local prefix="BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_$1"
+  local parameter="${prefix}_0"
+
+  if [[ -n "${!parameter:-}" ]]; then
+    local i=0
+    local parameter="${prefix}_${i}"
+    while [[ -n "${!parameter:-}" ]]; do
+      echo "${!parameter}"
+      i=$((i+1))
+      parameter="${prefix}_${i}"
+    done
+  elif [[ -n "${!prefix:-}" ]]; then
+    echo "${!prefix}"
+  fi
+}
 
 if [[ "${BUILDKITE_PIPELINE_PROVIDER:-}" != "github" ]] ; then
   echo "⛔️  this plugin can only be used on piplines associated with github repositories" >&2
   exit 1
 fi
 
+# If the build is not tied to a pull request, try and extract the PR number if configuration to do so has been provided
 if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" ]] ; then
-  echo "⚠️  this doesn't appear to be a PR-build, skipping plugin execution" >&2
-  exit 0
+
+  # If there is a pattern(s) and source configured, try to extract the PR number
+  if [[ -n "${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_SOURCE:-}" ]]; then
+    echo "⚠️  this doesn't appear to be a PR-build, but a PR number pattern is configured" >&2
+    source=\""${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_SOURCE}"\" # Wrap in quotes here to prevent issues when using eval
+
+    # If patternValue is an array of patterns, chain grep commands together for each
+    if [[ -n "${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_PATTERN_0}" ]]; then
+      patternString=""
+      while read -r p ; do
+        patternString+=" | grep -oE '${p}'"
+      done <<< "$(prefix_read_list "PATTERN")"
+    else
+      # Otherwise just use the single pattern
+      # shellcheck disable=SC2153
+      patternString=" | grep -oE '${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_PATTERN}'"
+    fi
+
+    echo "extracting PR number using pattern: ${patternString} from source: ${source}"
+    pullReqNo=$(eval echo "${source}" "${patternString}")
+    echo "~~~ :github: extracted PR number: ${pullReqNo}"
+  else
+    # Otherwise, we can't do anything so exit
+    echo "⚠️  this doesn't appear to be a PR-build, skipping plugin execution" >&2
+    exit 0
+  fi
+else
+  # For builds tied to a pull request, use the provided pull request number variable
+  pullReqNo="${BUILDKITE_PULL_REQUEST}"
 fi
-pullReqNo="${BUILDKITE_PULL_REQUEST}"
+
 
 repoFq=""
 if [[ "${BUILDKITE_REPO:-}" =~ github.com[:/](.*).git[/]? ]]; then
