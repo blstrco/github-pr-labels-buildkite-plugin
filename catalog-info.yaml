@@ -1,0 +1,17 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: github-pr-labels-buildkite-plugin
+  description: Buildkite plugin for pulling labels from pull requests
+  annotations:
+    github.com/project-slug: https://github.com/blstrco/github-pr-labels-buildkite-plugin
+    backstage.io/techdocs-ref: dir:.
+    linktr.ee/criticality: Low
+    linktr.ee/deployable: No
+    linktr.ee/personal-data: No
+    linktr.ee/visibility: Internal
+spec:
+  type: Component
+  system: ci-cd
+  lifecycle: production
+  owner: developer-platform
