@@ -32,24 +32,21 @@ if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" || "${BUILDKITE_BRANCH}" == 
   # If there is a pattern(s) and source configured, try to extract the PR number
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_SOURCE:-}" ]]; then
     echo "⚠️  this doesn't appear to be a PR-build, but a PR number pattern is configured" >&2
-
-    patternValue="$(prefix_read_list "PATTERN")"
     source=\""${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_SOURCE}"\" # Wrap in quotes here to prevent issues when using eval
 
-    echo "Source: ${source}"
-    echo "Pattern: ${patternValue}"
-
     # If patternValue is an array of patterns, chain grep commands together for each
-    if [[ $(declare -p "${patternValue}") =~ "declare -a" ]]; then
+    if [[ -n "${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_PATTERN_0}" ]]; then
       patternString=""
-      for p in "${patternValue[@]}"; do
+      while read -r p ; do
         patternString+=" | grep -oE '${p}'"
-      done
+      done <<< "$(prefix_read_list "PATTERN")"
     else
       # Otherwise just use the single pattern
-      patternString=" | grep -oE '${patternValue}'"
+      # shellcheck disable=SC2153
+      patternString=" | grep -oE '${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_PATTERN}'"
     fi
 
+    echo "extracting PR number using pattern: ${patternString} from source: ${source}"
     pullReqNo=$(eval echo "${source}" "${patternString}")
     echo "~~~ :github: extracted PR number: ${pullReqNo}"
   else
