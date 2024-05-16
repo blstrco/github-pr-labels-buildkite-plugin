@@ -34,6 +34,12 @@ fi
 # If the build is not tied to a pull request, try and extract the PR number if configuration to do so has been provided
 if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" ]] ; then
 
+  # If the build is not on a default branch, exit
+  if [[ "${BUILDKITE_BRANCH:-}" != "master" && "${BUILDKITE_BRANCH:-}" != "main" ]]; then
+    echo "⚠️  this doesn't appear to be a PR-build, but it's not on the default branch so the PR number pattern will not be used" >&2
+    exit 0
+  fi
+
   # If there is a pattern(s) and source configured, try to extract the PR number
   if [[ -n "${BUILDKITE_PLUGIN_GITHUB_PR_LABELS_PULL_REQUEST_ID_FROM_SOURCE:-}" ]]; then
     echo "⚠️  this doesn't appear to be a PR-build, but a PR number pattern is configured" >&2
