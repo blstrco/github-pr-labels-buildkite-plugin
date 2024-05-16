@@ -35,7 +35,7 @@ fi
 if [[ "${BUILDKITE_PULL_REQUEST:-false}" == "false" ]] ; then
 
   # If the build is not on a default branch, exit
-  if [[ "${BUILDKITE_BRANCH:-}" != "master" && "${BUILDKITE_BRANCH:-}" != "main" ]]; then
+  if [[ "${BUILDKITE_BRANCH:-}" != "master" && "${BUILDKITE_BRANCH:-}" != "main" && "${BUILDKITE_BRANCH}" != gh-readonly-queue* ]]; then
     echo "⚠️  this doesn't appear to be a PR-build, but it's not on the default branch so the PR number pattern will not be used" >&2
     exit 0
   fi
