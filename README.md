@@ -86,6 +86,8 @@ steps:
   - command: buildkite-agent meta-data get pull-request-labels
 ```
 
+> This feature is currently on supported on `main` and `master` branches.
+
 ## Configuration
 
 ### `token-from` (optional, {file | env})
